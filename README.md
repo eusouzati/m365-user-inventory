@@ -33,13 +33,16 @@ CSV Export
 - PowerShell
 - Git and GitHub
 
-## Version 2 Features
+## Version 3 Features
 
 - App-only authentication with client credentials
 - Microsoft 365 user retrieval
+- Automatic pagination for tenants with more than 100 users
 - Export of display name, UPN, email, department, job title and account status
 - CSV encoded for Excel and separated with semicolons
 - Friendly error when the CSV file is open in Excel
+- Microsoft Graph and unexpected error handling
+- Execution log with timestamps, page totals and duration
 - Credential cleanup even when an error occurs
 - Idempotent PowerShell script for lab user provisioning
 - Credentials, generated output and backup files excluded from source control
@@ -104,6 +107,7 @@ The application creates:
 
 ```text
 output/m365_users.csv
+logs/m365_inventory.log
 ```
 
 ## Creating Lab Users
@@ -119,7 +123,7 @@ Existing users are skipped, so the script can be executed more than once without
 ## Security
 
 - Secrets are stored only in `.env`
-- `.env`, `.venv`, generated CSV files and backups are ignored by Git
+- `.env`, `.venv`, generated CSV files, logs and backups are ignored by Git
 - The inventory application uses read-only Microsoft Graph access
 - The initial lab password is entered securely at runtime
 
@@ -133,4 +137,5 @@ Existing users are skipped, so the script can be executed more than once without
 
 ## Status
 
-Version 2 - Functional
+Version 3 - Functional
+
