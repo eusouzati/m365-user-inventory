@@ -5,6 +5,8 @@ from pathlib import Path
 from azure.identity.aio import ClientSecretCredential
 from dotenv import dotenv_values
 from msgraph import GraphServiceClient
+from msgraph.generated.users.users_request_builder import UsersRequestBuilder
+from kiota_abstractions.base_request_configuration import RequestConfiguration
 
 
 async def main():
@@ -34,7 +36,26 @@ async def main():
         scopes=scopes,
     )
 
-    users = await graph_client.users.get()
+    query_params = (
+        UsersRequestBuilder.UsersRequestBuilderGetQueryParameters(
+            select=[
+                "displayName",
+                "userPrincipalName",
+                "mail",
+                "department",
+                "jobTitle",
+                "accountEnabled",
+            ]
+        )
+    )
+
+    request_configuration = RequestConfiguration(
+        query_parameters=query_params
+    )
+
+    users = await graph_client.users.get(
+        request_configuration=request_configuration
+    )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -44,20 +65,29 @@ async def main():
         newline="",
         encoding="utf-8-sig",
     ) as csv_file:
+
         writer = csv.writer(csv_file)
 
         writer.writerow(
             [
                 "display_name",
                 "user_principal_name",
+                "email",
+                "department",
+                "job_title",
+                "account_enabled",
             ]
         )
 
         for user in users.value:
             writer.writerow(
                 [
-                    user.display_name,
-                    user.user_principal_name,
+                    user.display_name or "",
+                    user.user_principal_name or "",
+                    user.mail or "",
+                    user.department or "",
+                    user.job_title or "",
+                    user.account_enabled,
                 ]
             )
 
