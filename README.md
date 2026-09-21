@@ -33,7 +33,7 @@ CSV Export
 - PowerShell
 - Git and GitHub
 
-## Version 3 Features
+## Version 4 Features
 
 - App-only authentication with client credentials
 - Microsoft 365 user retrieval
@@ -45,6 +45,8 @@ CSV Export
 - Execution log with timestamps, page totals and duration
 - Credential cleanup even when an error occurs
 - Idempotent PowerShell script for lab user provisioning
+- Automated unit tests for pagination, CSV export and logging
+- GitHub Actions validation on pushes and pull requests
 - Credentials, generated output and backup files excluded from source control
 
 ## Project Structure
@@ -55,6 +57,8 @@ m365-user-inventory/
 |   |-- New-LabUsers.ps1
 |-- src/
 |   |-- main.py
+|-- tests/
+|   |-- test_main.py
 |-- .env.example
 |-- .gitignore
 |-- README.md
@@ -120,6 +124,15 @@ Connect to Microsoft Graph with the required permissions and run:
 
 Existing users are skipped, so the script can be executed more than once without creating duplicates.
 
+
+## Running the Tests
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
+The GitHub Actions workflow runs the syntax check and automated tests on every push to `main` and on every pull request.
+
 ## Security
 
 - Secrets are stored only in `.env`
@@ -132,10 +145,10 @@ Existing users are skipped, so the script can be executed more than once without
 - Add pagination for large tenants
 - Add structured logging and execution timestamps
 - Improve Microsoft Graph error handling
-- Add automated tests and GitHub Actions
 - Replace the client secret with managed authentication when deployed to Azure
 
 ## Status
 
-Version 3 - Functional
+Version 4 - Functional
+
 
