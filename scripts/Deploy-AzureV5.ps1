@@ -275,16 +275,27 @@ if (-not $existingGraphRole) {
         appRoleId = $graphRole.id
     } | ConvertTo-Json -Compress
 
-    az rest `
-        --method POST `
-        --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$principalId/appRoleAssignments" `
-        --body $body `
-        --headers "Content-Type=application/json" `
-        --only-show-errors `
-        --output none
-    Assert-LastExitCode "Could not grant User.Read.All. A tenant administrator may be required."
-}
+    $bodyFilePath = Join-Path (
+        [System.IO.Path]::GetTempPath()
+    ) ("m365-graph-role-{0}.json" -f [guid]::NewGuid().ToString("N"))
 
+    try {
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($bodyFilePath, $body, $utf8NoBom)
+
+        az rest `
+            --method POST `
+            --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$principalId/appRoleAssignments" `
+            --body "@$bodyFilePath" `
+            --headers "Content-Type=application/json" `
+            --only-show-errors `
+            --output none
+        Assert-LastExitCode "Could not grant User.Read.All. A tenant administrator may be required."
+    }
+    finally {
+        Remove-Item -LiteralPath $bodyFilePath -Force -ErrorAction SilentlyContinue
+    }
+}
 Write-Host "Publishing the Azure Function..."
 func azure functionapp publish $FunctionApp --python
 Assert-LastExitCode "Function deployment failed."
