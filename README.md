@@ -856,3 +856,11 @@ m365-user-inventory/
 
 Version 1.2.0 - portable one-command Azure deployment with detailed setup,
 validation, security and troubleshooting instructions.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+Copyright (c) 2026 Tiago de Souza Silva.
+
+Author: [Tiago de Souza Silva](https://www.linkedin.com/in/eusouzati/)
