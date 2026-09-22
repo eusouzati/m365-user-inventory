@@ -199,6 +199,37 @@ az functionapp identity assign `
     --output none
 Assert-LastExitCode "Could not attach the managed identity."
 
+Write-Host "Granting Application Insights telemetry access..."
+$appInsightsId = az resource list `
+    --resource-group $ResourceGroup `
+    --resource-type "Microsoft.Insights/components" `
+    --query "[?name=='$FunctionApp'].id | [0]" `
+    --output tsv
+Assert-LastExitCode "Could not read the Application Insights resource."
+
+if (-not $appInsightsId) {
+    throw "Application Insights resource was not found."
+}
+
+$monitoringRole = az role assignment list `
+    --assignee $principalId `
+    --scope $appInsightsId `
+    --role "Monitoring Metrics Publisher" `
+    --query "[0].id" `
+    --output tsv `
+    --only-show-errors
+
+if (-not $monitoringRole) {
+    az role assignment create `
+        --assignee-object-id $principalId `
+        --assignee-principal-type ServicePrincipal `
+        --role "Monitoring Metrics Publisher" `
+        --scope $appInsightsId `
+        --only-show-errors `
+        --output none
+    Assert-LastExitCode "Could not grant Application Insights telemetry access."
+}
+
 if (-not (Test-AzCommand @(
     "storage", "container-rm", "show",
     "--resource-group", $ResourceGroup,
@@ -214,6 +245,34 @@ if (-not (Test-AzCommand @(
         --only-show-errors `
         --output none
     Assert-LastExitCode "Could not create the inventory container."
+}
+
+if ($account.user.type -eq "user") {
+    $signedInUserObjectId = az ad signed-in-user show `
+        --query id `
+        --output tsv
+    Assert-LastExitCode "Could not read the signed-in user object ID."
+
+    $containerScope = "$storageId/blobServices/default/containers/$ContainerName"
+    $readerRole = az role assignment list `
+        --assignee $signedInUserObjectId `
+        --scope $containerScope `
+        --role "Storage Blob Data Reader" `
+        --query "[0].id" `
+        --output tsv `
+        --only-show-errors
+
+    if (-not $readerRole) {
+        Write-Host "Granting read-only inventory access to the signed-in user..."
+        az role assignment create `
+            --assignee-object-id $signedInUserObjectId `
+            --assignee-principal-type User `
+            --role "Storage Blob Data Reader" `
+            --scope $containerScope `
+            --only-show-errors `
+            --output none
+        Assert-LastExitCode "Could not grant read-only inventory access."
+    }
 }
 
 Write-Host "Configuring passwordless application settings..."
