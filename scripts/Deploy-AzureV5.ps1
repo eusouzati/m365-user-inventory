@@ -19,8 +19,17 @@ function Assert-LastExitCode {
 function Test-AzCommand {
     param([string[]]$Arguments)
 
-    & az @Arguments --only-show-errors 1>$null 2>$null
-    return $LASTEXITCODE -eq 0
+    $previousPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "SilentlyContinue"
+        & az @Arguments --only-show-errors *> $null
+        $commandExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousPreference
+    }
+
+    return $commandExitCode -eq 0
 }
 
 if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
