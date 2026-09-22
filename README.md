@@ -1,203 +1,179 @@
-﻿# Microsoft 365 User Inventory
+# Microsoft 365 User Inventory
 
-A cloud automation project that retrieves Microsoft 365 users through Microsoft Graph and exports an extended inventory to a CSV file.
+A reusable cloud automation project that retrieves Microsoft 365 users through
+Microsoft Graph and exports an inventory to CSV locally or to private Azure
+Blob Storage.
 
-## Project Goal
+## Main features
 
-Automate Microsoft 365 user inventory collection using Python, Microsoft Graph and app-only authentication through Microsoft Entra ID.
+- Microsoft Graph app-only authentication
+- Automatic pagination for large tenants
+- User name, UPN, email, department, job title and account status export
+- Excel-compatible CSV output
+- Local execution with credentials stored in `.env`
+- Scheduled Azure Functions execution
+- Passwordless cloud authentication with managed identity
+- Private Blob Storage output
+- Application Insights monitoring
+- Idempotent one-command Azure deployment
+- Automated tests for Python 3.11 and 3.12
 
-## Architecture
+## Cloud architecture
 
 ```text
-Microsoft Entra ID
+Azure Functions timer
         |
         v
-App Registration
+User-assigned managed identity
         |
-        v
-Microsoft Graph API
+        +----> Microsoft Graph (User.Read.All)
         |
-        v
-Python Automation
+        +----> Private Azure Blob Storage
         |
-        v
-CSV Export
+        `----> Application Insights
 ```
 
-## Technologies
+No Microsoft 365 client secret or storage key is deployed to Azure.
 
-- Python 3.12
-- Microsoft Graph SDK
-- Microsoft Entra ID
-- Azure Identity
-- PowerShell
-- Git and GitHub
-
-## Version 5 Features
-
-- App-only authentication with client credentials
-- Microsoft 365 user retrieval
-- Automatic pagination for tenants with more than 100 users
-- Export of display name, UPN, email, department, job title and account status
-- CSV encoded for Excel and separated with semicolons
-- Friendly error when the CSV file is open in Excel
-- Microsoft Graph and unexpected error handling
-- Execution log with timestamps, page totals and duration
-- Credential cleanup even when an error occurs
-- Idempotent PowerShell script for lab user provisioning
-- Automated unit tests for pagination, CSV export and logging
-- GitHub Actions validation on pushes and pull requests
-- Scheduled Azure Function execution at 08:00 Brasilia time (11:00 UTC)
-- Azure Functions Flex Consumption hosting in Brazil South
-- Passwordless Microsoft Graph and Blob Storage authentication
-- User-assigned managed identity with least-privilege access
-- Private Blob Storage CSV output
-- Application Insights execution monitoring
-- Credentials, generated output and backup files excluded from source control
-
-## Project Structure
+## Project structure
 
 ```text
 m365-user-inventory/
+|-- docs/
+|   `-- DEPLOYMENT.md
+|-- scripts/
+|   |-- Deploy.ps1
+|   |-- Deploy-AzureV5.ps1
+|   `-- New-LabUsers.ps1
+|-- src/
+|   `-- main.py
+|-- tests/
+|   `-- test_main.py
+|-- .env.example
+|-- .funcignore
+|-- .gitignore
 |-- function_app.py
 |-- host.json
 |-- local.settings.example.json
-|-- scripts/
-|   |-- Deploy-AzureV5.ps1
-|   |-- New-LabUsers.ps1
-|-- src/
-|   |-- main.py
-|-- tests/
-|   |-- test_main.py
-|-- .env.example
-|-- .gitignore
-|-- README.md
 |-- requirements.txt
+`-- README.md
 ```
 
-## Prerequisites
+## Quick Azure deployment
 
-- Python 3.12
-- Microsoft Entra ID app registration
-- Microsoft Graph application permission `User.Read.All` with admin consent
-- Microsoft Graph PowerShell permissions when using the lab provisioning script
+Prerequisites:
 
-## Environment Variables
+- Azure CLI
+- Azure Functions Core Tools 4
+- Python 3.11 or 3.12
+- PowerShell 5.1 or PowerShell 7
+- Azure permissions to create resources and role assignments
+- Microsoft Entra administrator permission to grant Graph `User.Read.All`
 
-Create a `.env` file based on `.env.example`:
+Clone and configure:
 
-```text
-TENANT_ID=
-CLIENT_ID=
-CLIENT_SECRET=
+```powershell
+git clone https://github.com/eusouzati/m365-user-inventory.git
+cd m365-user-inventory
+Copy-Item .env.example .env
 ```
 
-Never commit the `.env` file.
+Fill in `.env`. The minimum cloud configuration is:
 
-## Installation
+```dotenv
+AZURE_TENANT_ID=
+AZURE_SUBSCRIPTION_ID=
+```
 
-Create and activate a virtual environment on Windows:
+Deploy with one command:
+
+```powershell
+.\scripts\Deploy.ps1
+```
+
+The script validates the configuration and creates or updates the complete
+Azure environment. Resource names can be provided in `.env` or generated
+automatically.
+
+See [the complete deployment guide](docs/DEPLOYMENT.md) for permissions,
+variables, validation and troubleshooting.
+
+## Local execution
+
+Create `.env` from `.env.example` and configure:
+
+```dotenv
+M365_TENANT_ID=
+M365_CLIENT_ID=
+M365_CLIENT_SECRET=
+```
+
+The app registration requires Microsoft Graph application permission
+`User.Read.All` with admin consent.
+
+Create the environment and install dependencies:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-```
-
-Install dependencies:
-
-```powershell
 python -m pip install -r requirements.txt
 ```
 
-## Running the Inventory
-
-Close the CSV file in Excel before running:
+Run the inventory:
 
 ```powershell
 python src\main.py
 ```
 
-The application creates:
+Local output:
 
 ```text
 output/m365_users.csv
 logs/m365_inventory.log
 ```
 
-## Azure Deployment
+## Cloud schedule and output
 
-The Azure deployment uses a Flex Consumption Function App in `brazilsouth`.
-It runs every day at 11:00 UTC, which corresponds to 08:00 in Brasilia.
+The default schedule is daily at 11:00 UTC, equivalent to 08:00 in Brasilia
+while UTC-3 applies.
 
-The cloud function uses a user-assigned managed identity. No tenant client
-secret or storage account key is deployed with the application.
-
-Required tools:
-
-- Azure CLI
-- Azure Functions Core Tools 4
-- Python 3.11 or 3.12 for development and tests
-- A tenant administrator able to grant Microsoft Graph `User.Read.All`
-
-Deploy from the repository root:
-
-```powershell
-.\scripts\Deploy-AzureV5.ps1
-```
-
-The deployment script displays all resource names and requires typing
-`DEPLOY` before it creates Azure resources. It creates:
-
-- Resource group `rg-m365-user-inventory`
-- Flex Consumption Function App
-- Standard LRS Storage Account with shared-key access disabled
-- Private `inventory` blob container
-- User-assigned managed identity
-- Application Insights instance
-
-The latest CSV is stored as:
+The latest CSV is stored in the private container as:
 
 ```text
 inventory/m365_users.csv
 ```
 
-## Creating Lab Users
+Schedule, container and blob name can all be changed in `.env`.
 
-Connect to Microsoft Graph with the required permissions and run:
-
-```powershell
-.\scripts\New-LabUsers.ps1
-```
-
-Existing users are skipped, so the script can be executed more than once without creating duplicates.
-
-
-## Running the Tests
+## Tests
 
 ```powershell
 python -m unittest discover -s tests -v
 ```
 
-The GitHub Actions workflow runs the syntax check and automated tests on every push to `main` and on every pull request.
+GitHub Actions validates Python 3.11 and 3.12 on pushes to `main` and pull
+requests.
+
+## Lab users
+
+The optional lab provisioning script is idempotent:
+
+```powershell
+.\scripts\New-LabUsers.ps1
+```
+
+Existing users are skipped.
 
 ## Security
 
-- Secrets are stored only in `.env`
-- `.env`, `.venv`, generated CSV files, logs and backups are ignored by Git
-- The inventory application uses read-only Microsoft Graph access
-- Azure uses managed identity instead of a client secret
-- The storage account has public and shared-key access disabled
-- The cloud identity receives only `User.Read.All` and storage data access
-- The initial lab password is entered securely at runtime
+- `.env`, generated CSV files, logs and local settings are ignored by Git.
+- `.env` is excluded from the Azure Functions deployment package.
+- Azure uses managed identity instead of client secrets.
+- The storage container is private and shared-key access is disabled.
+- Microsoft Graph access is read-only.
+- The deployment grants only the RBAC roles needed by the application and the
+  signed-in operator.
 
-## Roadmap
+## Version
 
-- Add historical CSV retention as an optional feature
-- Add failure notifications
-- Add infrastructure-as-code validation
-
-## Status
-
-Version 5 - Azure deployment ready
-
-
+Version 1.2.0 - portable one-command deployment configuration.

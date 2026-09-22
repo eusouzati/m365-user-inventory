@@ -152,9 +152,12 @@ async def main():
     try:
         config = dotenv_values(env_path)
 
-        tenant_id = config.get("TENANT_ID")
-        client_id = config.get("CLIENT_ID")
-        client_secret = config.get("CLIENT_SECRET")
+        tenant_id = config.get("M365_TENANT_ID") or config.get("TENANT_ID")
+        client_id = config.get("M365_CLIENT_ID") or config.get("CLIENT_ID")
+        client_secret = (
+            config.get("M365_CLIENT_SECRET")
+            or config.get("CLIENT_SECRET")
+        )
 
         if not tenant_id or not client_id or not client_secret:
             raise ValueError(

@@ -1,10 +1,14 @@
 .git*
+.github/
 .venv/
 .env
+.env.*
 local.settings.json
 output/
 logs/
 tests/
 scripts/
+docs/
+README.md
 *.bak
 *.zip
