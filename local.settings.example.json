@@ -1,0 +1,11 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "INVENTORY_SCHEDULE": "0 0 11 * * *",
+    "INVENTORY_STORAGE_ACCOUNT": "replace-with-storage-name",
+    "INVENTORY_CONTAINER": "inventory",
+    "INVENTORY_BLOB_NAME": "m365_users.csv"
+  }
+}

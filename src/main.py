@@ -1,5 +1,6 @@
 ﻿import asyncio
 import csv
+import io
 import logging
 import time
 from datetime import datetime
@@ -68,53 +69,68 @@ async def fetch_all_users(
     return all_users
 
 
-def write_csv(output_path, users):
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
+def build_csv_bytes(users):
     sorted_users = sorted(
         users,
         key=lambda user: (user.display_name or "").casefold(),
     )
 
-    with open(
-        output_path,
-        "w",
-        newline="",
-        encoding="utf-8-sig",
-    ) as csv_file:
-        writer = csv.writer(
-            csv_file,
-            delimiter=";",
+    csv_file = io.StringIO(newline="")
+    writer = csv.writer(csv_file, delimiter=";")
+
+    writer.writerow(
+        [
+            "display_name",
+            "user_principal_name",
+            "email",
+            "department",
+            "job_title",
+            "account_enabled",
+        ]
+    )
+
+    for user in sorted_users:
+        account_enabled = (
+            user.account_enabled
+            if user.account_enabled is not None
+            else ""
         )
 
         writer.writerow(
             [
-                "display_name",
-                "user_principal_name",
-                "email",
-                "department",
-                "job_title",
-                "account_enabled",
+                user.display_name or "",
+                user.user_principal_name or "",
+                user.mail or "",
+                user.department or "",
+                user.job_title or "",
+                account_enabled,
             ]
         )
 
-        for user in sorted_users:
-            account_enabled = (
-                user.account_enabled
-                if user.account_enabled is not None
-                else ""
-            )
+    return csv_file.getvalue().encode("utf-8-sig")
 
-            writer.writerow(
-                [
-                    user.display_name or "",
-                    user.user_principal_name or "",
-                    user.mail or "",
-                    user.department or "",
-                    user.job_title or "",
-                    account_enabled,
-                ]
-            )
+
+def write_csv(output_path, users):
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_bytes(build_csv_bytes(users))
+
+
+def build_users_request_configuration():
+    query_params = (
+        UsersRequestBuilder.UsersRequestBuilderGetQueryParameters(
+            select=[
+                "displayName",
+                "userPrincipalName",
+                "mail",
+                "department",
+                "jobTitle",
+                "accountEnabled",
+            ],
+            top=100,
+        )
+    )
+
+    return RequestConfiguration(query_parameters=query_params)
 
 
 async def main():
@@ -145,23 +161,7 @@ async def main():
                 "Credentials were not found in the .env file"
             )
 
-        query_params = (
-            UsersRequestBuilder.UsersRequestBuilderGetQueryParameters(
-                select=[
-                    "displayName",
-                    "userPrincipalName",
-                    "mail",
-                    "department",
-                    "jobTitle",
-                    "accountEnabled",
-                ],
-                top=100,
-            )
-        )
-
-        request_configuration = RequestConfiguration(
-            query_parameters=query_params
-        )
+        request_configuration = build_users_request_configuration()
 
         credential = ClientSecretCredential(
             tenant_id=tenant_id,

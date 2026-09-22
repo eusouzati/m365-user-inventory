@@ -5,3 +5,5 @@ __pycache__/
 output/
 *.bak
 logs/
+local.settings.json
+.python_packages/

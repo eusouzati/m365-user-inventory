@@ -1,0 +1,10 @@
+.git*
+.venv/
+.env
+local.settings.json
+output/
+logs/
+tests/
+scripts/
+*.bak
+*.zip

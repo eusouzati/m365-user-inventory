@@ -6,7 +6,12 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from src.main import configure_logging, fetch_all_users, write_csv
+from src.main import (
+    build_csv_bytes,
+    configure_logging,
+    fetch_all_users,
+    write_csv,
+)
 
 
 class FakePage:
@@ -97,6 +102,14 @@ class FetchAllUsersTests(unittest.TestCase):
 
 
 class CsvExportTests(unittest.TestCase):
+    def test_build_csv_bytes_adds_excel_bom(self):
+        users = [make_user("Ana", "ana@example.com")]
+
+        csv_content = build_csv_bytes(users)
+
+        self.assertTrue(csv_content.startswith(b"\xef\xbb\xbf"))
+        self.assertIn(b"ana@example.com", csv_content)
+
     def test_write_csv_uses_semicolon_and_sorts_users(self):
         users = [
             make_user(

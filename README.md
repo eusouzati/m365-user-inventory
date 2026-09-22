@@ -33,7 +33,7 @@ CSV Export
 - PowerShell
 - Git and GitHub
 
-## Version 4 Features
+## Version 5 Features
 
 - App-only authentication with client credentials
 - Microsoft 365 user retrieval
@@ -47,13 +47,23 @@ CSV Export
 - Idempotent PowerShell script for lab user provisioning
 - Automated unit tests for pagination, CSV export and logging
 - GitHub Actions validation on pushes and pull requests
+- Scheduled Azure Function execution at 08:00 Brasilia time (11:00 UTC)
+- Azure Functions Flex Consumption hosting in Brazil South
+- Passwordless Microsoft Graph and Blob Storage authentication
+- User-assigned managed identity with least-privilege access
+- Private Blob Storage CSV output
+- Application Insights execution monitoring
 - Credentials, generated output and backup files excluded from source control
 
 ## Project Structure
 
 ```text
 m365-user-inventory/
+|-- function_app.py
+|-- host.json
+|-- local.settings.example.json
 |-- scripts/
+|   |-- Deploy-AzureV5.ps1
 |   |-- New-LabUsers.ps1
 |-- src/
 |   |-- main.py
@@ -114,6 +124,43 @@ output/m365_users.csv
 logs/m365_inventory.log
 ```
 
+## Azure Deployment
+
+The Azure deployment uses a Flex Consumption Function App in `brazilsouth`.
+It runs every day at 11:00 UTC, which corresponds to 08:00 in Brasilia.
+
+The cloud function uses a user-assigned managed identity. No tenant client
+secret or storage account key is deployed with the application.
+
+Required tools:
+
+- Azure CLI
+- Azure Functions Core Tools 4
+- Python 3.11 or 3.12 for development and tests
+- A tenant administrator able to grant Microsoft Graph `User.Read.All`
+
+Deploy from the repository root:
+
+```powershell
+.\scripts\Deploy-AzureV5.ps1
+```
+
+The deployment script displays all resource names and requires typing
+`DEPLOY` before it creates Azure resources. It creates:
+
+- Resource group `rg-m365-user-inventory`
+- Flex Consumption Function App
+- Standard LRS Storage Account with shared-key access disabled
+- Private `inventory` blob container
+- User-assigned managed identity
+- Application Insights instance
+
+The latest CSV is stored as:
+
+```text
+inventory/m365_users.csv
+```
+
 ## Creating Lab Users
 
 Connect to Microsoft Graph with the required permissions and run:
@@ -138,17 +185,19 @@ The GitHub Actions workflow runs the syntax check and automated tests on every p
 - Secrets are stored only in `.env`
 - `.env`, `.venv`, generated CSV files, logs and backups are ignored by Git
 - The inventory application uses read-only Microsoft Graph access
+- Azure uses managed identity instead of a client secret
+- The storage account has public and shared-key access disabled
+- The cloud identity receives only `User.Read.All` and storage data access
 - The initial lab password is entered securely at runtime
 
 ## Roadmap
 
-- Add pagination for large tenants
-- Add structured logging and execution timestamps
-- Improve Microsoft Graph error handling
-- Replace the client secret with managed authentication when deployed to Azure
+- Add historical CSV retention as an optional feature
+- Add failure notifications
+- Add infrastructure-as-code validation
 
 ## Status
 
-Version 4 - Functional
+Version 5 - Azure deployment ready
 
 

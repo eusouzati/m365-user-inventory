@@ -11,9 +11,13 @@ permissions:
 
 jobs:
   test:
-    name: Python 3.12 tests
+    name: Python ${{ matrix.python-version }} tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
 
     steps:
       - name: Check out repository
@@ -22,7 +26,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
           cache: pip
 
       - name: Install dependencies
@@ -31,7 +35,7 @@ jobs:
           python -m pip install -r requirements.txt
 
       - name: Check Python syntax
-        run: python -m py_compile src/main.py
+        run: python -m py_compile src/main.py function_app.py
 
       - name: Run automated tests
         run: python -m unittest discover -s tests -v
